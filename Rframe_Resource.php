@@ -53,6 +53,7 @@ abstract class Rframe_Resource {
             try {
                 $parent->check_method('fetch', $uuid);
                 $this->parent_rec = $parent->rec_fetch($uuid);
+                $this->sanity('rec_fetch', $this->parent_rec);
             }
             catch (Rframe_Exception $e) {
                 $this->parent_err = $e;
@@ -175,11 +176,11 @@ abstract class Rframe_Resource {
 
             // create
             $uuid = $this->rec_create($data);
-            if (!$uuid) throw new Exception("rec_create must return uuid");
+            $this->sanity('rec_create', $uuid);
 
             // re-fetch
             $rec = $this->rec_fetch($uuid);
-            if (!$rec) throw new Exception("rec_fetch must return record");
+            $this->sanity('rec_fetch', $rec);
 
             // success!
             return $this->format($rec, 'create', $uuid);
@@ -203,9 +204,7 @@ abstract class Rframe_Resource {
 
             // query
             $recs = $this->rec_query($args);
-            if (!is_array($recs) || $this->is_assoc_array($recs)) {
-                throw new Exception("rec_query must return array");
-            }
+            $this->sanity('rec_query', $recs);
 
             // success!
             return $this->format($recs, 'query');
@@ -228,7 +227,7 @@ abstract class Rframe_Resource {
 
             // fetch
             $rec = $this->rec_fetch($uuid);
-            if (!$rec) throw new Exception("rec_fetch must return record");
+            $this->sanity('rec_fetch', $rec);
 
             // success!
             return $this->format($rec, 'fetch', $uuid);
@@ -253,8 +252,9 @@ abstract class Rframe_Resource {
 
             // fetch and update
             $rec = $this->rec_fetch($uuid);
-            if (!$rec) throw new Exception("rec_fetch must return record");
-            $this->rec_update($rec, $data);
+            $this->sanity('rec_fetch', $rec);
+            $upd = $this->rec_update($rec, $data);
+            $this->sanity('rec_update', $upd);
 
             // success!
             return $this->format($rec, 'update', $uuid);
@@ -277,14 +277,50 @@ abstract class Rframe_Resource {
 
             // fetch and delete
             $rec = $this->rec_fetch($uuid);
-            if (!$rec) throw new Exception("rec_fetch must return record");
-            $this->rec_delete($rec);
+            $this->sanity('rec_fetch', $rec);
+            $del = $this->rec_delete($rec);
+            $this->sanity('rec_delete', $del);
 
             // success!
             return $this->format(null, 'delete', $uuid);
         }
         catch (Rframe_Exception $e) {
             return $this->format($e, 'delete', $uuid);
+        }
+    }
+
+
+    /**
+     * Sanity check values returned from implemented abstract functions, to
+     * make sure they work properly.
+     *
+     * @param string  $method
+     * @param mixed   $return
+     */
+    protected function sanity($method, &$return) {
+        if ($method == 'rec_create') {
+            if (!is_string($return)) {
+                throw new Exception("rec_create must return string uuid");
+            }
+        }
+        elseif ($method == 'rec_query') {
+            if (!is_array($return) || $this->is_assoc_array($return)) {
+                throw new Exception("rec_query must return array of records");
+            }
+        }
+        elseif ($method == 'rec_fetch') {
+            if (!$return) {
+                throw new Exception("rec_fetch must return record");
+            }
+        }
+        elseif ($method == 'rec_update') {
+            //nothing
+        }
+        elseif ($method == 'rec_delete') {
+            //nothing
+        }
+        else {
+            throw new Exception("Unknown method '$method'");
         }
     }
 
