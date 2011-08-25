@@ -35,7 +35,7 @@ abstract class Rframe_Resource {
      * @param Rframe_Parser $parser
      * @param array   $path
      */
-    final public function __construct($parser, $path=array()) {
+    public function __construct($parser, $path=array()) {
         $this->parser = $parser;
         $this->path = $path;
 
@@ -371,13 +371,7 @@ abstract class Rframe_Resource {
         }
         elseif ($method == 'query') {
             // multiple records
-            $resp['radix'] = array();
-            foreach ($mixed as $rec) {
-                if (!is_object($rec)) {
-                    throw new Exception("Record must be object");
-                }
-                $resp['radix'][] = $this->format_radix($rec);
-            }
+            $resp['radix'] = $this->format_query_radix($mixed);
             $resp['meta'] = $this->format_meta($mixed, $method);
         }
         elseif ($this->is_assoc_array($mixed) || is_object($mixed)) {
@@ -387,6 +381,21 @@ abstract class Rframe_Resource {
         }
 
         return $resp;
+    }
+
+
+    /**
+     * Format the value returned from rec_query() into an array radix.
+     *
+     * @param mixed   $mixed
+     * @return array $radix
+     */
+    protected function format_query_radix($mixed) {
+        $radix = array();
+        foreach ($mixed as $rec) {
+            $radix[] = $this->format_radix($rec);
+        }
+        return $radix;
     }
 
 
