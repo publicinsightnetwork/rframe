@@ -550,7 +550,10 @@ abstract class Rframe_Resource {
             $resp['meta'] = $this->format_meta($mixed, $method);
             $resp['meta'] = array_merge($resp['meta'], $extra);
         }
-        elseif ($this->is_assoc_array($mixed) || is_object($mixed)) {
+        elseif ($method == 'delete') {
+            // nothing to do
+        }
+        else {
             // single record
             $resp['radix'] = $this->format_radix($mixed);
             $resp['meta'] = $this->format_meta($mixed, $method);
