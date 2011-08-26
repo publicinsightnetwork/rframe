@@ -34,7 +34,7 @@ class TestAPI01_Purple_Green extends Rframe_Resource {
     protected $UPDATE_DATA = array();
 
     // test vars
-    private $ID = 1000;
+    private static $ID = 1000;
 
     /**
      * Create a new record at this resource.  If the record cannot be created,
@@ -50,7 +50,7 @@ class TestAPI01_Purple_Green extends Rframe_Resource {
         if (!isset($data['apple'])) {
             throw new Rframe_Exception(Rframe::BAD_DATA, 'apple required');
         }
-        $id = $this->ID++;
+        $id = self::$ID++;
         $bar = new BarRecord($id, $data['apple']);
         $purple_foo->add_bar($bar);
         return "$id";

@@ -34,7 +34,7 @@ class TestAPI01_Purple extends Rframe_Resource {
     protected $UPDATE_DATA = array('bird');
 
     // test vars
-    private $ID = 99;
+    private static $ID = 99;
 
 
     /**
@@ -53,7 +53,7 @@ class TestAPI01_Purple extends Rframe_Resource {
         if (!is_string($data['hat']) || strlen($data['hat']) < 2) {
             throw new Rframe_Exception(Rframe::BAD_DATA, 'hat too small');
         }
-        $id = $this->ID++;
+        $id = self::$ID++;
         $foo = new FooRecord($id, $data['hat']);
         $__TEST_OBJECTS[] = $foo;
         return "$id";
