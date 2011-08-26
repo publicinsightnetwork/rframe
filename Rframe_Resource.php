@@ -238,7 +238,7 @@ abstract class Rframe_Resource {
                 // get parts from string: 'fld1 dir1, fld2 dir2, ...'
                 $sorts = explode(',', $sort);
                 foreach ($sorts as $single_sort) {
-                    $sp = $this->_get_sorts($single_sort);
+                    $sp = $this->_get_sort($single_sort);
                     $paging['sort'][] = $sp;
                 }
             }
@@ -625,19 +625,7 @@ abstract class Rframe_Resource {
      * @param string $dir
      */
     protected function rec_query_add_sort(&$mixed, $fld, $dir) {
-        function cmp($a, $b) {
-            global $fld, $dir;
-            $a = $a[$fld];
-            $b = $b[$fld];
-            if ($a == $b) return 0;
-            if ($dir == 'asc') {
-                return ($a < $b) ? -1 : 1;
-            }
-            else {
-                return ($a > $b) ? -1 : 1;
-            }
-        }
-        usort($mixed, 'cmp');
+        throw new Exception("No sort defined");
     }
 
 
