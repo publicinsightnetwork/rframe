@@ -44,6 +44,7 @@ abstract class Rframe_Resource {
     // parser used for routes in this API
     protected $parser;
     protected $path;
+    protected $init;
 
 
     /**
@@ -52,11 +53,13 @@ abstract class Rframe_Resource {
      *
      * @throws Rframe_Exception
      * @param Rframe_Parser $parser
-     * @param array   $path
+     * @param array         $path
+     * @param array         $inits
      */
-    public function __construct($parser, $path=array()) {
+    public function __construct($parser, $path=array(), $inits=array()) {
         $this->parser = $parser;
         $this->path = $path;
+        $this->init = $inits;
 
         // construct our parent resource
         if (count($path) > 1) {

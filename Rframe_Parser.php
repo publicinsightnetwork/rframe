@@ -17,8 +17,8 @@
  *
  ******************************************************************************/
 
-define('Rframe_DEFAULT_MAX_SCAN_DEPTH', 3);
-define('Rframe_DEFAULT_DELIM', '/');
+define('RFRAME_DEFAULT_MAX_SCAN_DEPTH', 3);
+define('RFRAME_DEFAULT_DELIM', '/');
 
 /**
  * Helper class used to parse and resolve resource path strings
@@ -36,23 +36,25 @@ class Rframe_Parser {
     // cached routestring => classname
     public $routes = array();
 
+    // data to pass to resource constructors
+    protected $rsc_inits = array();
+
 
     /**
      * Construct a parser for a particular file path and namespace.
      *
      * @param string  $path
      * @param string  $namespace
-     * @param boolean $recursive (optional)
+     * @param array   $rsc_inits
+     * @param string  $delim (optional)
+     * @param boolean $depth (optional)
      */
-    public function __construct($path, $namespace, $recursive=true) {
-        $this->max_scan_depth = Rframe_DEFAULT_MAX_SCAN_DEPTH;
-        $this->delimiter = Rframe_DEFAULT_DELIM;
-
-        if (!$recursive) {
-            $this->max_scan_depth = 0;
-        }
+    public function __construct($path, $namespace, $rsc_inits, $delim=null, $depth=null) {
+        $this->delimiter = ($delim === null) ? RFRAME_DEFAULT_DELIM : $delim;
+        $this->max_scan_depth = ($depth === null) ? RFRAME_DEFAULT_MAX_SCAN_DEPTH : $depth;
         $this->_require_all($path);
         $this->_cache_valid_routes($namespace);
+        $this->rsc_inits = $rsc_inits;
     }
 
 
@@ -79,7 +81,7 @@ class Rframe_Parser {
 
         // instantiate the resource based on route
         $cls = $this->routes[$this->_path_to_route($segments)];
-        $rsc = new $cls($this, $segments);
+        $rsc = new $cls($this, $segments, $this->rsc_inits);
         return $rsc;
     }
 
@@ -208,7 +210,7 @@ class Rframe_Parser {
 
         // instantiate class with no parents loaded
         $cls = $this->routes[$route];
-        $rsc = new $cls($this);
+        $rsc = new $cls($this, array(), $this->rsc_inits);
         return $rsc->describe();
     }
 

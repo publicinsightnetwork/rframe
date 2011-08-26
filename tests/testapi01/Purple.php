@@ -56,7 +56,7 @@ class TestAPI01_Purple extends Rframe_Resource {
         $id = $this->ID++;
         $foo = new FooRecord($id, $data['hat']);
         $__TEST_OBJECTS[] = $foo;
-        return $id;
+        return "$id";
     }
 
 

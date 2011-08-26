@@ -53,7 +53,7 @@ class TestAPI01_Purple_Green extends Rframe_Resource {
         $id = $this->ID++;
         $bar = new BarRecord($id, $data['apple']);
         $purple_foo->add_bar($bar);
-        return $id;
+        return "$id";
     }
 
 

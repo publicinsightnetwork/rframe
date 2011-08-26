@@ -59,12 +59,17 @@ class Rframe {
      * Constructor.  The namespace represents the first part of the classname
      * for all parts of the api.  (NAMESPACE_RscName).
      *
-     * @param string  $api_root_path
-     * @param string  $api_root_namespace
+     * To pass custom parameters to each resource created within the API,
+     * use key-value pairs within $init.
+     *     example: $init = array('user'=>$usr_obj)
+     *
+     * @param string  $api_path
+     * @param string  $api_namespace
+     * @param array   $init (optional)
      */
-    public function __construct($api_root_path, $api_root_namespace) {
+    public function __construct($api_path, $api_namespace, $init=array()) {
         $cls = $this->parser_cls;
-        $this->parser = new $cls($api_root_path, $api_root_namespace);
+        $this->parser = new $cls($api_path, $api_namespace, $init);
     }
 
 
