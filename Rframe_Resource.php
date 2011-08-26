@@ -370,12 +370,10 @@ abstract class Rframe_Resource {
             }
 
             // apply limit/offset
-            $lim = isset($pg_args['limit']) ? $pg_args['limit'] : 0;
-            $off = isset($pg_args['offset']) ? $pg_args['offset'] : 0;
-            if ($lim || $off) {
-                $this->rec_query_page($recs, $lim, $off);
-                $extra['limit'] = $lim;
-                $extra['offset'] = $off;
+            $extra['limit'] = isset($pg_args['limit']) ? $pg_args['limit'] : 0;
+            $extra['offset'] = isset($pg_args['offset']) ? $pg_args['offset'] : 0;
+            if ($extra['limit'] || $extra['offset']) {
+                $this->rec_query_page($recs, $extra['limit'], $extra['offset']);
             }
 
             // success!

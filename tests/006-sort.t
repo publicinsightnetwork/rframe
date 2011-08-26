@@ -28,15 +28,15 @@ require_once 'includes.php';
  */
 $api_path = dirname(__FILE__).'/testapi02';
 $api = new Rframe($api_path, 'TestAPI02');
-plan(37);
+plan(43);
 
 
 /**********************
  * 0) Setup
  */
-$rsp = $api->create('purple', array('val' => 'aaaaa'));
+$rsp = $api->create('purple', array('val' => 'aabaa'));
 is( $rsp['code'], Rframe::OKAY, 'create1' );
-$rsp = $api->create('purple', array('val' => 'ggggg'));
+$rsp = $api->create('purple', array('val' => 'aaaaa'));
 is( $rsp['code'], Rframe::OKAY, 'create2' );
 $rsp = $api->create('purple', array('val' => 'ccccc'));
 is( $rsp['code'], Rframe::OKAY, 'create3' );
@@ -44,7 +44,7 @@ $rsp = $api->create('purple', array('val' => 'zzzzz'));
 is( $rsp['code'], Rframe::OKAY, 'create4' );
 $rsp = $api->create('purple', array('val' => 'aaaaa'));
 is( $rsp['code'], Rframe::OKAY, 'create5' );
-$rsp = $api->create('purple', array('val' => 'aabaa'));
+$rsp = $api->create('purple', array('val' => 'ggggg'));
 is( $rsp['code'], Rframe::OKAY, 'create6' );
 
 /**********************
@@ -121,3 +121,23 @@ is( $meta['sortstr'], 'val desc', 'meta sortstr' );
 is( count($meta['sort']), 1, 'meta sort count' );
 is( $meta['sort'][0][0], 'val', 'meta sort field' );
 is( $meta['sort'][0][1], 'desc', 'meta sort direction' );
+
+/**********************
+ * 4) Defaults
+ */
+$rsp = $api->query('purple');
+is( $rsp['code'], Rframe::OKAY, 'none-default - code' );
+$sort_default = $rsp['radix'];
+is( $sort_default[0]['val'], 'aabaa', 'val-default' );
+
+TestAPI02_Purple::$DEFAULT_SORT = 'val asc';
+$rsp = $api->query('purple');
+is( $rsp['code'], Rframe::OKAY, 'none-default2 - code' );
+$sort_default = $rsp['radix'];
+is( $sort_default[0]['val'], 'aaaaa', 'val-default2' );
+
+TestAPI02_Purple::$DEFAULT_SORT = 'val desc';
+$rsp = $api->query('purple');
+is( $rsp['code'], Rframe::OKAY, 'none-default3 - code' );
+$sort_default = $rsp['radix'];
+is( $sort_default[0]['val'], 'zzzzz', 'val-default3' );

@@ -36,11 +36,31 @@ class TestAPI02_Purple extends Rframe_Resource {
     // sorting
     protected $sort_param = 'sortme';
     protected $sort_valids = array('val', 'id');
-    protected $sort_default = false; //start with no default
+
+    // paging
+    protected $limit_param = 'lim';
+    protected $offset_param = 'off';
 
     // test vars
     private static $ID = 99;
+    public static $DEFAULT_SORT = false;
+    public static $DEFAULT_LIMIT = false;
+    public static $DEFAULT_OFFSET = false;
 
+    
+    /**
+     * Setup test data
+     *
+     * @param type $parser
+     * @param type $path
+     * @param type $inits 
+     */
+    public function __construct($parser, $path = array(), $inits = array()) {
+        $this->sort_default = self::$DEFAULT_SORT;
+        $this->limit_default = self::$DEFAULT_LIMIT;
+        $this->offset_default = self::$DEFAULT_OFFSET;
+        parent::__construct($parser, $path, $inits);
+    }
 
     /**
      * Create a new record at this resource.  If the record cannot be created,
@@ -183,16 +203,6 @@ class TestAPI02_Purple extends Rframe_Resource {
                 'val' => 'string',
             ),
         );
-    }
-    
-    
-    /**
-     * Test helper to change default sorting.
-     *
-     * @param string $sort
-     */
-    public function change_default_sort($sort) {
-        $this->sort_default = $sort;
     }
     
     

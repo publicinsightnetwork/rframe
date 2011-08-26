@@ -21,96 +21,141 @@
 require_once 'includes.php';
 
 /**
- * Tests for querying API resources.
+ * Tests for sorting a query on API resources
  *
  * @version 0.1
  * @author ryancavis
  */
-$api_path = dirname(__FILE__).'/testapi01';
-$api = new Rframe($api_path, 'TestAPI01');
-plan(33);
-
-// setup the test objects
-$__TEST_OBJECTS = array(
-    new FooRecord(12, 'purple1'),
-    new FooRecord(34, 'purple2'),
-    new FooRecord(56, 'purple3'),
-    new FooRecord(78, 'blah123'),
-);
-$bar1 = new BarRecord('abc', 'purplegreen1');
-$bar1->add_foo(new FooRecord('999', 'purplegreenblue1'));
-$bar2 = new BarRecord('def', 'purplegreen2');
-$__TEST_OBJECTS[0]->add_bar($bar1);
-$__TEST_OBJECTS[0]->add_bar($bar2);
+$api_path = dirname(__FILE__).'/testapi02';
+$api = new Rframe($api_path, 'TestAPI02');
+plan(67);
 
 
 /**********************
- * 1) Basic tests
+ * 0) Setup
  */
-// bad path
-$rsp = $api->query('purpl');
-is( $rsp['code'], Rframe::BAD_PATH, 'bad path - code' );
-is( $rsp['success'], false, 'bad path - success' );
-like( $rsp['message'], '/invalid path/i', 'bad path - message');
+$rsp = $api->create('purple', array('val' => 'aaaaa'));
+is( $rsp['code'], Rframe::OKAY, 'create1' );
+$rsp = $api->create('purple', array('val' => 'ggggg'));
+is( $rsp['code'], Rframe::OKAY, 'create2' );
+$rsp = $api->create('purple', array('val' => 'ccccc'));
+is( $rsp['code'], Rframe::OKAY, 'create3' );
+$rsp = $api->create('purple', array('val' => 'zzzzz'));
+is( $rsp['code'], Rframe::OKAY, 'create4' );
+$rsp = $api->create('purple', array('val' => 'aaaaa'));
+is( $rsp['code'], Rframe::OKAY, 'create5' );
+$rsp = $api->create('purple', array('val' => 'aabaa'));
+is( $rsp['code'], Rframe::OKAY, 'create6' );
 
-// bad method
-$rsp = $api->query('purple/12');
-is( $rsp['code'], Rframe::BAD_PATH, 'bad method - code' );
-is( $rsp['success'], false, 'bad method - success' );
-like( $rsp['message'], '/invalid path for query/i', 'bad method - message');
+/**********************
+ * 1) Paging meta
+ */
+$allowed = $rsp['api']['methods']['query'];
+$sorts = $rsp['api']['sorts'];
+ok(in_array('lim', $allowed), 'meta - query limit');
+ok(in_array('off', $allowed), 'meta - query offset');
 
-// bad args
-$rsp = $api->query('purple', array('fake' => 12));
-is( $rsp['code'], Rframe::BAD_DATA, 'bad args - code' );
-is( $rsp['success'], false, 'bad args - success' );
-like( $rsp['message'], '/query args/i', 'bad args - message');
-
-// all
+/**********************
+ * 2) Limit only
+ */
 $rsp = $api->query('purple');
-is( $rsp['code'], Rframe::OKAY, 'all - code' );
-is( $rsp['success'], true, 'all - success' );
-is( count($rsp['radix']), 4, 'all - count radix' );
+is( $rsp['code'], Rframe::OKAY, 'default - code' );
+is( count($rsp['radix']), 6, 'default - count' );
+is( $rsp['meta']['total'], 6, 'default - total' );
+is( $rsp['meta']['limit'], 0, 'default - meta limit' );
+is( $rsp['meta']['offset'], 0, 'default - meta offset' );
 
-// start
-$rsp = $api->query('purple', array('start' => 'pur'));
-is( $rsp['code'], Rframe::OKAY, 'start - code' );
-is( $rsp['success'], true, 'start - success' );
-is( count($rsp['radix']), 3, 'start - count radix' );
+$rsp = $api->query('purple', array('limit' => 5));
+is( $rsp['code'], Rframe::BAD_DATA, 'limit - code' );
+like( $rsp['message'], '/disallowed/i', 'limit - msg' );
 
-// end
-$rsp = $api->query('purple', array('end' => 'pur'));
-is( $rsp['code'], Rframe::OKAY, 'end1 - code' );
-is( $rsp['success'], true, 'end1 - success' );
-is( count($rsp['radix']), 0, 'end1 - count radix' );
+$rsp = $api->query('purple', array('lim' => -1));
+is( $rsp['code'], Rframe::BAD_DATA, 'lim bad - code' );
+like( $rsp['message'], '/bad limit/i', 'lim bad - msg' );
 
-$rsp = $api->query('purple', array('end' => '3'));
-is( $rsp['code'], Rframe::OKAY, 'end2 - code' );
-is( $rsp['success'], true, 'end2 - success' );
-is( count($rsp['radix']), 2, 'end2 - count radix' );
+$rsp = $api->query('purple', array('lim' => '5'));
+is( $rsp['code'], Rframe::OKAY, 'limit 5 - code' );
+is( count($rsp['radix']), 5, 'limit 5 - count' );
+is( $rsp['meta']['total'], 6, 'limit 5 - total' );
+is( $rsp['radix'][0]['val'], 'aaaaa', 'limit 5 - 1st' );
+is( $rsp['meta']['limit'], 5, 'limit 5 - meta limit' );
+is( $rsp['meta']['offset'], 0, 'limit 5 - meta offset' );
 
+$rsp = $api->query('purple', array('lim' => 8));
+is( $rsp['code'], Rframe::OKAY, 'limit 8 - code' );
+is( count($rsp['radix']), 6, 'limit 8 - count' );
+is( $rsp['meta']['total'], 6, 'limit 8 - total' );
+is( $rsp['radix'][0]['val'], 'aaaaa', 'limit 8 - 1st' );
+
+$rsp = $api->query('purple', array('lim' => 0));
+is( $rsp['code'], Rframe::OKAY, 'limit 0 - code' );
+is( count($rsp['radix']), 6, 'limit 0 - count' );
+is( $rsp['meta']['total'], 6, 'limit 0 - total' );
+is( $rsp['radix'][0]['val'], 'aaaaa', 'limit 0 - 1st' );
+is( $rsp['meta']['limit'], 0, 'limit 0 - meta limit' );
+is( $rsp['meta']['offset'], 0, 'limit 0 - meta offset' );
 
 /**********************
- * 2) Allowed methods
+ * 2) Offset only
  */
-$rsp = $api->query('purple/12/green');
-is( $rsp['code'], Rframe::BAD_METHOD, 'bad method - code' );
-is( $rsp['success'], false, 'bad method - success' );
-like( $rsp['message'], '/query not allowed/i', 'bad method - message');
+$rsp = $api->query('purple', array('offset' => 2));
+is( $rsp['code'], Rframe::BAD_DATA, 'offset - code' );
+like( $rsp['message'], '/disallowed/i', 'offset - msg' );
 
-// DNE
-$rsp = $api->query('purple/77/green');
-is( $rsp['code'], Rframe::BAD_IDENT, 'dne - code' );
-is( $rsp['success'], false, 'dne - success' );
-like( $rsp['message'], '/purple 77 not found/i', 'dne - message');
+$rsp = $api->query('purple', array('off' => -1));
+is( $rsp['code'], Rframe::BAD_DATA, 'off bad - code' );
+like( $rsp['message'], '/bad offset/i', 'off bad - msg' );
 
-// allowed
-$rsp = $api->query('purple/12/green/abc/blue');
-is( $rsp['code'], Rframe::OKAY, 'good method - code' );
-is( $rsp['success'], true, 'good method - success' );
-is( count($rsp['radix']), 1, 'good method - count radix' );
+$rsp = $api->query('purple', array('off' => '2'));
+is( $rsp['code'], Rframe::OKAY, 'offset 2 - code' );
+is( count($rsp['radix']), 4, 'offset 2 - count' );
+is( $rsp['meta']['total'], 6, 'offset 2 - total' );
+is( $rsp['radix'][0]['val'], 'ccccc', 'offset 2 - 1st' );
+is( $rsp['meta']['limit'], 0, 'offset 2 - meta limit' );
+is( $rsp['meta']['offset'], 2, 'offset 2 - meta offset' );
 
-// parent dne
-$rsp = $api->query('purple/12/green/aaa/blue');
-is( $rsp['code'], Rframe::BAD_IDENT, 'parent dne - code' );
-is( $rsp['success'], false, 'parent dne - success' );
-like( $rsp['message'], '/green aaa not found/i', 'parent dne - message');
+$rsp = $api->query('purple', array('off' => 8));
+is( $rsp['code'], Rframe::OKAY, 'offset 8 - code' );
+is( count($rsp['radix']), 0, 'offset 8 - count' );
+is( $rsp['meta']['total'], 6, 'offset 8 - total' );
+
+/**********************
+ * 3) Limit + Offset
+ */
+$rsp = $api->query('purple', array('lim' => 2, 'off' => '3'));
+is( $rsp['code'], Rframe::OKAY, 'lim2 off3 - code' );
+is( count($rsp['radix']), 2, 'lim2 off3 - count' );
+is( $rsp['meta']['total'], 6, 'lim2 off3 - total' );
+is( $rsp['radix'][0]['val'], 'zzzzz', 'lim2 off3 - 1st' );
+is( $rsp['radix'][1]['val'], 'aaaaa', 'lim2 off3 - 2nd' );
+is( $rsp['meta']['limit'], 2, 'lim2 off3 - meta limit' );
+is( $rsp['meta']['offset'], 3, 'lim2 off3 - meta offset' );
+
+/**********************
+ * 4) Limit + Offset + sort
+ */
+$rsp = $api->query('purple', array('lim' => 2, 'off' => '3', 'sortme' => 'val asc'));
+is( $rsp['code'], Rframe::OKAY, 'lim-off-sort - code' );
+is( count($rsp['radix']), 2, 'lim-off-sort - count' );
+is( $rsp['meta']['total'], 6, 'lim-off-sort - total' );
+is( $rsp['radix'][0]['val'], 'ccccc', 'lim-off-sort - 1st' );
+is( $rsp['radix'][1]['val'], 'ggggg', 'lim-off-sort - 2nd' );
+is( $rsp['meta']['limit'], 2, 'lim-off-sort - meta limit' );
+is( $rsp['meta']['offset'], 3, 'lim-off-sort - meta offset' );
+
+/**********************
+ * 4) Limit + Offset + sort + filter
+ */
+$rsp = $api->query('purple', array(
+    'lim' => 3,
+    'off' => 1,
+    'sortme' => 'val asc',
+    'valstarts' => 'a',
+));
+is( $rsp['code'], Rframe::OKAY, 'lim-off-sort-filter - code' );
+is( count($rsp['radix']), 2, 'lim-off-sort-filter - count' );
+is( $rsp['meta']['total'], 3, 'lim-off-sort-filter - total' );
+is( $rsp['radix'][0]['val'], 'aaaaa', 'lim-off-sort-filter - 1st' );
+is( $rsp['radix'][1]['val'], 'aabaa', 'lim-off-sort-filter - 2nd' );
+is( $rsp['meta']['limit'], 3, 'lim-off-sort-filter - meta limit' );
+is( $rsp['meta']['offset'], 1, 'lim-off-sort-filter - meta offset' );
