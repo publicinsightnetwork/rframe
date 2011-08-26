@@ -35,6 +35,15 @@ abstract class Rframe_Resource {
     protected $QUERY_ARGS  = array();
     protected $UPDATE_DATA = array();
 
+    // querying
+    protected $limit_param;
+    protected $limit_default;
+    protected $offset_param;
+    protected $offset_default;
+    protected $sort_param;
+    protected $sort_default;
+    protected $sort_valids = array();
+
     // the record representing the immediate parent of this resource
     protected $parent_rec = null;
 
@@ -60,6 +69,19 @@ abstract class Rframe_Resource {
         $this->parser = $parser;
         $this->path = $path;
         $this->init = $inits;
+
+        // add query data to QUERY_ARGS
+        if (in_array('query', $this->ALLOWED)) {
+            if ($this->limit_param) {
+                $this->QUERY_ARGS[] = $this->limit_param;
+            }
+            if ($this->offset_param) {
+                $this->QUERY_ARGS[] = $this->offset_param;
+            }
+            if ($this->sort_param && count($this->sort_valids)) {
+                $this->QUERY_ARGS[] = $this->sort_param;
+            }
+        }
 
         // construct our parent resource
         if (count($path) > 1) {
@@ -108,6 +130,9 @@ abstract class Rframe_Resource {
         }
         if (in_array('query', $this->ALLOWED)) {
             $desc['methods']['query'] = $this->QUERY_ARGS;
+            if ($this->sort_param && count($this->sort_valids)) {
+                $desc['sorts'] = $this->sort_valids;
+            }
         }
         if (in_array('fetch', $this->ALLOWED)) {
             $desc['methods']['fetch'] = true;
@@ -186,6 +211,108 @@ abstract class Rframe_Resource {
 
 
     /**
+     * Helper function to remove/return any sort/limit/offset keys from an
+     * array of query args.  Also validates any keys.
+     *
+     * @throws Rframe_Exception
+     * @param  array $args
+     * @return array $paging_data
+     */
+    protected function remove_paging_keys(&$args) {
+        $paging = array();
+
+        // sort
+        if ($this->sort_param) {
+            // only apply if set or there's a default sort
+            $set = array_key_exists($this->sort_param, $args);
+            if ($set || $this->sort_default) {
+                $sort = $set ? $args[$this->sort_param] : $this->sort_default;
+                unset($args[$this->sort_param]);
+                $paging['sort'] = array();
+
+                // must be valid string
+                if (!is_string($sort) || strlen($sort) < 1) {
+                    throw new Rframe_Exception(Rframe::BAD_DATA, "Invalid sort '$sort'");
+                }
+
+                // get parts from string: 'fld1 dir1, fld2 dir2, ...'
+                $sorts = explode(',', $sort);
+                foreach ($sorts as $single_sort) {
+                    $sp = $this->_get_sorts($single_sort);
+                    $paging['sort'][] = $sp;
+                }
+            }
+        }
+
+        // limit
+        if ($this->limit_param) {
+            // only apply if set or there's a default limit (> 0)
+            $set = array_key_exists($this->limit_param, $args);
+            if ($set || $this->limit_default > 0) {
+                $lim = $set ? $args[$this->limit_param] : $this->limit_default;
+                unset($args[$this->limit_param]);
+
+                // must be valid int
+                if (!is_numeric($lim) || $lim < 0 || $lim != round($lim)) {
+                    throw new Rframe_Exception(Rframe::BAD_DATA, "Bad limit '$lim'");
+                }
+
+                // only apply if it's > 0 (otherwise, NO LIMIT)
+                $lim = intval($lim);
+                if ($lim > 0) $paging['limit'] = $lim;
+            }
+        }
+
+        // offset
+        if ($this->offset_param) {
+            // only apply if set or there's a default limit (> 0)
+            $set = array_key_exists($this->offset_param, $args);
+            if ($set || $this->offset_default) {
+                $off = $set ? $args[$this->offset_param] : $this->offset_default;
+                unset($args[$this->offset_param]);
+
+                // must be valid int
+                if (!is_numeric($off) || $off < 0 || $off != round($off)) {
+                    throw new Rframe_Exception(Rframe::BAD_DATA, "Bad offset '$off'");
+                }
+
+                // only apply if it's > 0 (otherwise, NO OFFSET)
+                $off = intval($off);
+                if ($off > 0) $paging['offset'] = $off;
+            }
+        }
+        return $paging;
+    }
+
+
+    /**
+     * Helper function to get sorting field/direction from a string.  Each
+     * sort string should have the format "fld dir, fld dir".
+     *
+     * @param string $str
+     * @return array $fld_dir
+     */
+    protected function _get_sort($str) {
+        $parts = explode(' ', trim($str));
+        if (count($parts) == 1) $parts[] = 'asc';
+        if (count($parts) != 2) {
+            throw new Rframe_Exception(Rframe::BAD_DATA, "Bad sort '$str'");
+        }
+        if (!in_array($parts[0], $this->sort_valids)) {
+            $valids = implode(', ', $this->sort_valids);
+            $msg = "Bad sort field '$str'. Valid: ($valids)";
+            throw new Rframe_Exception(Rframe::BAD_DATA, $msg);
+        }
+        $parts[1] = strtolower($parts[1]);
+        if (!in_array($parts[1], array('asc', 'desc'))) {
+            $msg = "Bad sort direction '$str'. Valid: (asc, desc)";
+            throw new Rframe_Exception(Rframe::BAD_DATA, $msg);
+        }
+        return $parts;
+    }
+
+
+    /**
      * Create a new record at this resource.  Returns the formatted result.
      *
      * @param array   $data
@@ -225,11 +352,34 @@ abstract class Rframe_Resource {
             $this->check_keys($args, 'query');
 
             // query
+            $pg_args = $this->remove_paging_keys($args);
             $recs = $this->rec_query($args);
             $this->sanity('rec_query', $recs);
+            $extra = array(
+                'total' => $this->rec_query_total($recs),
+            );
+
+            // apply sorting
+            if (isset($pg_args['sort'])) {
+                $extra['sort'] = $pg_args['sort'];
+                foreach ($pg_args['sort'] as &$srt) {
+                    $this->rec_query_add_sort($recs, $srt[0], $srt[1]);
+                    $srt = $srt[0].' '.$srt[1];
+                }
+                $extra['sortstr'] = implode(',', $pg_args['sort']);
+            }
+
+            // apply limit/offset
+            $lim = isset($pg_args['limit']) ? $pg_args['limit'] : 0;
+            $off = isset($pg_args['offset']) ? $pg_args['offset'] : 0;
+            if ($lim || $off) {
+                $this->rec_query_page($recs, $lim, $off);
+                $extra['limit'] = $lim;
+                $extra['offset'] = $off;
+            }
 
             // success!
-            return $this->format($recs, 'query');
+            return $this->format($recs, 'query', null, $extra);
         }
         catch (Rframe_Exception $e) {
             return $this->format($e, 'query');
@@ -361,28 +511,33 @@ abstract class Rframe_Resource {
 
 
     /**
-     * Format a response for a mixed data type.
+     * Format a response for a mixed data type.  Any extra metadata provided
+     * will be merged with existing meta.
      *
      * @param mixed   $mixed
      * @param string  $method
-     * @param string  $uuid   (optional)
-     * @return array $response
+     * @param string  $uuid  (optional)
+     * @param array   $extra (optional)
+     * @return array  $response
      */
-    protected function format($mixed, $method, $uuid=null) {
-        // determine the path
-        $path = implode($this->parser->delimiter, $this->path);
-        if ($uuid) {
-            $path .= $this->parser->delimiter.$uuid;
-        }
-
+    protected function format($mixed, $method, $uuid=null, $extra=array()) {
         // generic response object
         $resp = array(
-            'path'    => $path,
             'method'  => $method,
             'success' => true,
             'code'    => Rframe::OKAY,
             'api'     => $this->describe(),
         );
+
+        // determine the path
+        if ($uuid) {
+            $resp['path'] = implode($this->parser->delimiter, $this->path);
+            $resp['path'] .= $this->parser->delimiter.$uuid;
+            $resp['uuid'] = $uuid;
+        }
+        else {
+            $resp['path'] = implode($this->parser->delimiter, $this->path);
+        }
 
         // response-type specific formatting
         if (is_a($mixed, 'Rframe_Exception')) {
@@ -395,11 +550,13 @@ abstract class Rframe_Resource {
             // multiple records
             $resp['radix'] = $this->format_query_radix($mixed);
             $resp['meta'] = $this->format_meta($mixed, $method);
+            $resp['meta'] = array_merge($resp['meta'], $extra);
         }
         elseif ($this->is_assoc_array($mixed) || is_object($mixed)) {
             // single record
             $resp['radix'] = $this->format_radix($mixed);
             $resp['meta'] = $this->format_meta($mixed, $method);
+            $resp['meta'] = array_merge($resp['meta'], $extra);
         }
 
         return $resp;
@@ -429,7 +586,9 @@ abstract class Rframe_Resource {
      * @return string $uuid
      * @throws Rframe_Exceptions
      */
-    abstract protected function rec_create($data);
+    protected function rec_create($data) {
+        throw new Exception("Method not implemented");
+    }
 
 
     /**
@@ -437,10 +596,63 @@ abstract class Rframe_Resource {
      * executed, an appropriate Exception should be thrown.
      *
      * @param array   $args
-     * @return array $records
+     * @return mixed $records
      * @throws Rframe_Exceptions
      */
-    abstract protected function rec_query($args);
+    protected function rec_query($args) {
+        throw new Exception("Method not implemented");
+    }
+
+
+    /**
+     * Return the total number of records of a query.  This method is called
+     * before any sorting/paging is applied.
+     *
+     * @param mixed $mixed (reference)
+     * @return int  $total
+     */
+    protected function rec_query_total(&$mixed) {
+        return count($mixed);
+    }
+
+
+    /**
+     * Apply a single sort to a query.  Sorting should be additive, and this
+     * method may get called multiple times to sort something.
+     *
+     * @param mixed  $mixed (reference)
+     * @param string $fld
+     * @param string $dir
+     */
+    protected function rec_query_add_sort(&$mixed, $fld, $dir) {
+        function cmp($a, $b) {
+            global $fld, $dir;
+            $a = $a[$fld];
+            $b = $b[$fld];
+            if ($a == $b) return 0;
+            if ($dir == 'asc') {
+                return ($a < $b) ? -1 : 1;
+            }
+            else {
+                return ($a > $b) ? -1 : 1;
+            }
+        }
+        usort($mixed, 'cmp');
+    }
+
+
+    /**
+     * Apply limit/offset to a query.  This method is called after sorting.
+     * A limit of '0' should be interpreted as 'no limit'.
+     *
+     * @param mixed $mixed (reference)
+     * @param int   $limit
+     * @param int   $offset
+     */
+    protected function rec_query_page(&$mixed, $limit, $offset) {
+        $limit = ($limit > 0) ? $limit : count($mixed);
+        $mixed = array_splice($mixed, $offset, $limit);
+    }
 
 
     /**
@@ -451,7 +663,9 @@ abstract class Rframe_Resource {
      * @return mixed $record
      * @throws Rframe_Exceptions
      */
-    abstract protected function rec_fetch($uuid);
+    protected function rec_fetch($uuid) {
+        throw new Exception("Method not implemented");
+    }
 
 
     /**
@@ -463,7 +677,9 @@ abstract class Rframe_Resource {
      * @param array   $data
      * @throws Rframe_Exceptions
      */
-    abstract protected function rec_update($record, $data);
+    protected function rec_update($record, $data) {
+        throw new Exception("Method not implemented");
+    }
 
 
     /**
@@ -474,7 +690,9 @@ abstract class Rframe_Resource {
      * @param mixed   $record
      * @throws Rframe_Exceptions
      */
-    abstract protected function rec_delete($record);
+    protected function rec_delete($record) {
+        throw new Exception("Method not implemented");
+    }
 
 
     /**
@@ -484,7 +702,9 @@ abstract class Rframe_Resource {
      * @param mixed   $record
      * @return array $radix
      */
-    abstract protected function format_radix($record);
+    protected function format_radix($record) {
+        throw new Exception("Method not implemented");
+    }
 
 
     /**
@@ -495,7 +715,9 @@ abstract class Rframe_Resource {
      * @param string  $method
      * @return array $meta
      */
-    abstract protected function format_meta($mixed, $method);
+    protected function format_meta($mixed, $method) {
+        return array();
+    }
 
 
 }

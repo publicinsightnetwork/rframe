@@ -51,7 +51,7 @@ class Rframe {
     );
 
     // path/route parser for this instance
-    protected $parser_cls = 'Rframe_Parser';
+    public static $PARSER_CLS = 'Rframe_Parser';
     protected $parser;
 
 
@@ -68,7 +68,7 @@ class Rframe {
      * @param array   $init (optional)
      */
     public function __construct($api_path, $api_namespace, $init=array()) {
-        $cls = $this->parser_cls;
+        $cls = self::$PARSER_CLS;
         $this->parser = new $cls($api_path, $api_namespace, $init);
     }
 
