@@ -36,6 +36,7 @@ abstract class Rframe_Resource {
     protected $UPDATE_DATA = array();
 
     // querying
+    protected $query_args_default = array();
     protected $limit_param;
     protected $limit_default;
     protected $offset_param;
@@ -350,6 +351,13 @@ abstract class Rframe_Resource {
         try {
             $this->check_method('query');
             $this->check_keys($args, 'query');
+
+            // add any 'default' query args to $args
+            foreach ($this->query_args_default as $key => $val) {
+                if (!array_key_exists($key, $args)) {
+                    $args[$key] = $val;
+                }
+            }
 
             // query
             $pg_args = $this->remove_paging_keys($args);
