@@ -97,7 +97,7 @@ abstract class Rframe_Resource {
             try {
                 $parent->check_method('fetch', $uuid);
                 $this->parent_rec = $parent->rec_fetch($uuid);
-                $this->sanity('rec_fetch', $this->parent_rec);
+                $parent->sanity('rec_fetch', $this->parent_rec);
             }
             catch (Rframe_Exception $e) {
                 $this->parent_err = $e;
