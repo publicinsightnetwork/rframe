@@ -97,7 +97,7 @@ abstract class Rframe_Resource {
             // fetch the parent resource
             try {
                 $parent->check_method('fetch', $uuid);
-                $this->parent_rec = $parent->rec_fetch($uuid);
+                $this->parent_rec = $parent->rec_fetch($uuid, true);
                 $parent->sanity('rec_fetch', $this->parent_rec);
             }
             catch (Rframe_Exception $e) {
@@ -429,10 +429,14 @@ abstract class Rframe_Resource {
             $this->check_keys($data, 'update');
 
             // fetch and update
-            $rec = $this->rec_fetch($uuid);
+            $rec = $this->rec_fetch($uuid, true);
             $this->sanity('rec_fetch', $rec);
             $upd = $this->rec_update($rec, $data);
             $this->sanity('rec_update', $upd);
+
+            // re-fetch with all data
+            $rec = $this->rec_fetch($uuid);
+            $this->sanity('rec_fetch', $rec);
 
             // success!
             return $this->format($rec, 'update', $uuid);
@@ -454,7 +458,7 @@ abstract class Rframe_Resource {
             $this->check_method('delete', $uuid);
 
             // fetch and delete
-            $rec = $this->rec_fetch($uuid);
+            $rec = $this->rec_fetch($uuid, true);
             $this->sanity('rec_fetch', $rec);
             $del = $this->rec_delete($rec);
             $this->sanity('rec_delete', $del);
@@ -656,11 +660,16 @@ abstract class Rframe_Resource {
      * Fetch a single record at this resource.  If the record cannot be fetched
      * or viewed, an appropriate Exception should be thrown.
      *
+     * The minimal flag indicates whether the record is being fetched for
+     * deleting/updating/verifying-existence, or if all data for formatting
+     * needs to be fetched as well.
+     *
      * @param string  $uuid
+     * @param boolean $minimal (optional)
      * @return mixed $record
      * @throws Rframe_Exceptions
      */
-    protected function rec_fetch($uuid) {
+    protected function rec_fetch($uuid, $minimal=false) {
         throw new Exception("Method not implemented");
     }
 
