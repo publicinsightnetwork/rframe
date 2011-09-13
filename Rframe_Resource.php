@@ -167,14 +167,14 @@ abstract class Rframe_Resource {
             throw new Rframe_Exception(Rframe::BAD_METHOD, $msg);
         }
 
-        // method invalid for REST
+        // path invalid for REST
         if ($uuid && ($method == 'create' || $method == 'query')) {
-            $msg = ucfirst($method) . ' invalid for resource';
-            throw new Rframe_Exception(Rframe::BAD_METHOD, $msg);
+            $msg = "Invalid path for $method: '{$this->path}'";
+            throw new Rframe_Exception(Rframe::BAD_PATH, $msg);
         }
         if (!$uuid && $method != 'create' && $method != 'query') {
-            $msg = ucfirst($method) . ' invalid for resource';
-            throw new Rframe_Exception(Rframe::BAD_METHOD, $msg);
+            $msg = "Invalid path for $method: '{$this->path}'";
+            throw new Rframe_Exception(Rframe::BAD_PATH, $msg);
         }
     }
 

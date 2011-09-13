@@ -114,11 +114,6 @@ class Rframe {
         }
 
         $uuid = $this->parser->uuid($path);
-        if ($found && !$uuid) {
-            $rsc = new Rframe_StaticResource($this->parser);
-            $rsc->code = Rframe::BAD_PATH;
-            $rsc->message = "Invalid path for fetch: '$path'";
-        }
         return $rsc->fetch($uuid);
     }
 
@@ -192,11 +187,6 @@ class Rframe {
         }
 
         $uuid = $this->parser->uuid($path);
-        if ($found && !$uuid) {
-            $rsc = new Rframe_StaticResource($this->parser);
-            $rsc->code = Rframe::BAD_PATH;
-            $rsc->message = "Invalid path for update: '$path'";
-        }
         return $rsc->update($uuid, $data);
     }
 
@@ -217,11 +207,6 @@ class Rframe {
         }
 
         $uuid = $this->parser->uuid($path);
-        if ($found && !$uuid) {
-            $rsc = new Rframe_StaticResource($this->parser);
-            $rsc->code = Rframe::BAD_PATH;
-            $rsc->message = "Invalid path for delete: '$path'";
-        }
         return $rsc->delete($uuid);
     }
 
