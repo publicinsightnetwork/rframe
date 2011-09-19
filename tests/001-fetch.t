@@ -60,7 +60,7 @@ like( $rsp['message'], '/invalid path/i', 'no root - message');
 
 // bad path for fetch (no uuid)
 $rsp = $api->fetch('purple/');
-is( $rsp['code'], Rframe::BAD_PATH, 'bad fetch path - code' );
+is( $rsp['code'], Rframe::BAD_PATHMETHOD, 'bad fetch path - code' );
 is( $rsp['success'], false, 'bad fetch path - success' );
 like( $rsp['message'], '/invalid path for fetch/i', 'bad fetch path - message');
 
@@ -95,7 +95,7 @@ is( $rsp['success'], false, 'fetch green - no purple - success' );
 like( $rsp['message'], '/invalid path/i', 'fetch green - no purple - message');
 
 $rsp = $api->fetch('/purple/12/green');
-is( $rsp['code'], Rframe::BAD_PATH, 'fetch green - no id - code' );
+is( $rsp['code'], Rframe::BAD_PATHMETHOD, 'fetch green - no id - code' );
 is( $rsp['success'], false, 'fetch green - no id - success' );
 like( $rsp['message'], '/invalid path for fetch/i', 'fetch green - no id - message');
 

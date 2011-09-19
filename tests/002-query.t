@@ -55,7 +55,7 @@ like( $rsp['message'], '/invalid path/i', 'bad path - message');
 
 // bad method
 $rsp = $api->query('purple/12');
-is( $rsp['code'], Rframe::BAD_PATH, 'bad method - code' );
+is( $rsp['code'], Rframe::BAD_PATHMETHOD, 'bad method - code' );
 is( $rsp['success'], false, 'bad method - success' );
 like( $rsp['message'], '/invalid path for query/i', 'bad method - message');
 

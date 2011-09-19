@@ -38,6 +38,8 @@ class Rframe {
     const BAD_AUTHZ      = 3;
     const BAD_DATA       = 4;
     const BAD_METHOD     = 5;
+    const BAD_PATHMETHOD = 6;
+    const UNKNOWN_ERROR  = 10;
     const OKAY           = 20;
 
     // default messaging for codes
@@ -47,6 +49,8 @@ class Rframe {
         self::BAD_AUTHZ      => 'Insufficient authz for request',
         self::BAD_DATA       => 'Invalid request data',
         self::BAD_METHOD     => 'Invalid method',
+        self::BAD_PATHMETHOD => 'Invalid path for method',
+        self::UNKNOWN_ERROR  => 'Unknown error',
         self::OKAY           => 'Okay',
     );
 
@@ -137,7 +141,7 @@ class Rframe {
         $uuid = $this->parser->uuid($path);
         if ($found && $uuid) {
             $rsc = new Rframe_StaticResource($this->parser);
-            $rsc->code = Rframe::BAD_PATH;
+            $rsc->code = Rframe::BAD_PATHMETHOD;
             $rsc->message = "Invalid path for query: '$path'";
         }
         return $rsc->query($args);
@@ -163,7 +167,7 @@ class Rframe {
         $uuid = $this->parser->uuid($path);
         if ($found && $uuid) {
             $rsc = new Rframe_StaticResource($this->parser);
-            $rsc->code = Rframe::BAD_PATH;
+            $rsc->code = Rframe::BAD_PATHMETHOD;
             $rsc->message = "Invalid path for create: '$path'";
         }
         return $rsc->create($data);

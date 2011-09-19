@@ -170,11 +170,11 @@ abstract class Rframe_Resource {
         // path invalid for REST
         if ($uuid && ($method == 'create' || $method == 'query')) {
             $msg = "Invalid path for $method: '{$this->path}'";
-            throw new Rframe_Exception(Rframe::BAD_PATH, $msg);
+            throw new Rframe_Exception(Rframe::BAD_PATHMETHOD, $msg);
         }
         if (!$uuid && $method != 'create' && $method != 'query') {
             $msg = "Invalid path for $method: '{$this->path}'";
-            throw new Rframe_Exception(Rframe::BAD_PATH, $msg);
+            throw new Rframe_Exception(Rframe::BAD_PATHMETHOD, $msg);
         }
     }
 

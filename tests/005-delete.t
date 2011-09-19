@@ -52,7 +52,7 @@ like( $rsp['message'], '/invalid path/i', 'bad path - message');
 
 // bad method
 $rsp = $api->delete('purple/');
-is( $rsp['code'], Rframe::BAD_PATH, 'bad path method - code' );
+is( $rsp['code'], Rframe::BAD_PATHMETHOD, 'bad path method - code' );
 is( $rsp['success'], false, 'bad path method - success' );
 like( $rsp['message'], '/invalid path for delete/i', 'bad path method - message');
 
