@@ -22,20 +22,21 @@ class FooRecord {
     /* internal params */
     protected $id;
     protected $value;
-    
+
     /* externel references */
     protected $bar_refs = array();
     protected $foo_refs = array();
-    
+    protected $ham_ref  = false;
+
     public function __construct($foo_id, $foo_value) {
         $this->id = $foo_id;
         $this->value = $foo_value;
     }
-    
+
     public function get_id() {
         return $this->id;
     }
-    
+
     public function get_value() {
         return $this->value;
     }
@@ -47,7 +48,7 @@ class FooRecord {
     public function add_bar(BarRecord $bar) {
         $this->bar_refs[] = $bar;
     }
-    
+
     public function remove_bar(BarRecord $bar) {
         foreach ($this->bar_refs as $idx => $b) {
             if ($bar->get_id() == $b->get_id()) {
@@ -60,13 +61,26 @@ class FooRecord {
     public function get_bars() {
         return $this->bar_refs;
     }
-    
+
     public function add_foo(FooRecord $foo) {
         $this->foo_refs[] = $foo;
     }
-    
+
     public function get_foos() {
         return $this->foo_refs;
     }
-    
+
+    public function get_ham() {
+        return $this->ham_ref;
+    }
+
+    public function set_ham(HamRecord $ham) {
+        $this->ham_ref = $ham;
+    }
+
+    public function remove_ham() {
+        $this->ham_ref = false;
+    }
+
+
 }
