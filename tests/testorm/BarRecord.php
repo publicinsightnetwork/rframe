@@ -39,6 +39,10 @@ class BarRecord {
         return $this->value;
     }
 
+    public function set_value($val) {
+        $this->value = $val;
+    }
+
     public function add_foo(FooRecord $foo) {
         $this->foo_refs[] = $foo;
     }

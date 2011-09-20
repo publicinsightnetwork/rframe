@@ -65,7 +65,11 @@ class TestAPI03_Purple_Red extends Rframe_Resource {
      */
     protected function rec_fetch($uuid) {
         $foo = $this->parent_rec;
-        return $foo->get_ham();
+        $ham = $foo->get_ham();
+        if (!$ham) {
+            throw new Rframe_Exception(RFrame::ONE_DNE, 'ham not found');
+        }
+        return $ham;
     }
 
 

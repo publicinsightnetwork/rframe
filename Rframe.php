@@ -39,6 +39,8 @@ class Rframe {
     const BAD_DATA       = 4;
     const BAD_METHOD     = 5;
     const BAD_PATHMETHOD = 6;
+    const ONE_EXISTS     = 7;
+    const ONE_DNE        = 8;
     const UNKNOWN_ERROR  = 10;
     const OKAY           = 20;
 
@@ -169,6 +171,16 @@ class Rframe {
             $rsc = new Rframe_StaticResource($this->parser);
             $rsc->code = Rframe::BAD_PATHMETHOD;
             $rsc->message = "Invalid path for create: '$path'";
+        }
+
+        // make sure resource DNE, for one-to-one's
+        if ($found && $rsc->get_rel_type(get_class($rsc)) == Rframe_Resource::ONE_TO_ONE) {
+            $rsp = $rsc->fetch(null);
+            if ($rsp['code'] == Rframe::OKAY) {
+                $rsc = new Rframe_StaticResource($this->parser);
+                $rsc->code = Rframe::ONE_EXISTS;
+                $rsc->message = "Unable to create: resource already exists!";
+            }
         }
         return $rsc->create($data);
     }

@@ -49,7 +49,7 @@ class TestAPI03_Purple_Red_Green extends Rframe_Resource {
             throw new Rframe_Exception(Rframe::BAD_DATA, 'val required');
         }
         $id = self::$ID++;
-        $bar = new BarRecord($id, $data['hat']);
+        $bar = new BarRecord($id, $data['val']);
         $ham->add_bar($bar);
         return "$id";
     }
