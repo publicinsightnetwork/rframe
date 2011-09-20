@@ -21,7 +21,11 @@ define('RFRAME_DEFAULT_MAX_SCAN_DEPTH', 3);
 define('RFRAME_DEFAULT_DELIM', '/');
 
 /**
- * Helper class used to parse and resolve resource path strings
+ * Helper class used to parse and resolve resource path strings.  There are a
+ * couple useful definitions within the context of this class:
+ *   PATH: string representing a complete resource, including UUID's
+ *   ROUTE: a PATH without any UUID's
+ *   CLASS: the classname of a resource file (looks like a ROUTE)
  *
  * @version 0.1
  * @author ryancavis
@@ -66,22 +70,23 @@ class Rframe_Parser {
      * @return Rframe_Resource|boolean
      */
     public function resource($path) {
-        $segments = $path;
         if (is_string($path)) {
-            $segments = $this->_parse_segments($path);
+            $path = $this->_path_explode($path);
         }
-        if (!$segments) {
+        $route = $this->_path_to_route($path);
+        if (!$route || count($route) < 1) {
             return false;
         }
 
-        // an ending-UUID should never be passed in the constructor to a rsc
-        if (count($segments) % 2 == 0) {
-            array_pop($segments);
+        // must not pass any UUID to resource constructor
+        if ($this->uuid($path)) {
+            array_pop($path);
         }
 
         // instantiate the resource based on route
-        $cls = $this->routes[$this->_path_to_route($segments)];
-        $rsc = new $cls($this, $segments, $this->rsc_inits);
+        $route_str = implode($this->delimiter, $route);
+        $cls = $this->routes[$route_str];
+        $rsc = new $cls($this, $path, $this->rsc_inits);
         return $rsc;
     }
 
@@ -91,66 +96,71 @@ class Rframe_Parser {
      * attached to this path.
      *
      * @param string|array $path
-     * @return string|boolean
+     * @return string
      */
     public function uuid($path) {
-        $segments = $path;
         if (is_string($path)) {
-            $segments = $this->_parse_segments($path);
+            $path = $this->_path_explode($path);
         }
-        if ($segments && count($segments) % 2 == 0) {
-            return array_pop($segments);
+        $route = $this->_path_to_route($path);
+        $path_end  = is_array($path)  && count($path)  ? array_pop($path)  : null;
+        $route_end = is_array($route) && count($route) ? array_pop($route) : null;
+
+        if ($path_end && $route_end && $path_end != $route_end) {
+            return $path_end;
         }
-        else {
-            return false;
-        }
+        return false;
     }
 
 
     /**
-     * Parse a path string into component routes.  Returns false if the path
-     * was invalid, otherwise a duple array($path, $route).
+     * Explode a path string into an array.  Returns false if the path
+     * was invalid.
      *
      * @param string  $str
      * @return array|bool $parts
      */
-    protected function _parse_segments($str) {
+    protected function _path_explode($str) {
         // remove leading/trailing delimiters and explode!
         $d = preg_quote($this->delimiter);
         $d = preg_replace('/\//', '\/', $d);
         $str = preg_replace("/^$d|$d$/", '', $str);
         $split = explode($this->delimiter, $str);
 
-        // track the path (with uuid's), validating routes
-        $path = array();
-        for ($i=0; $i<count($split); $i+=2) {
-            $path[] = $split[$i];
-            if (isset($split[$i+1])) {
-                $path[] = $split[$i+1];
-            }
-
-            // invalid routes
-            $rstr = $this->_path_to_route($path);
-            if (!isset($this->routes[$rstr])) {
-                return false;
-            }
+        // validate
+        if (count($split) < 1) {
+            return false;
         }
-        return $path;
+        return $split;
     }
 
 
     /**
-     * Converts a path array (includes UUID's) to a route string.
+     * Converts a path into a route.  Returns false if the route is invalid.
      *
-     * @param array   $path
-     * @return string
+     * @param  array $path
+     * @return array $route
      */
     protected function _path_to_route($path) {
-        $route = array();
-        for ($i=0; $i<count($path); $i+=2) {
-            $route[] = $path[$i];
+        if (!is_array($path) || count($path) < 1) {
+            return false;
         }
-        return implode($this->delimiter, $route);
+
+        $route = array();
+        while (count($path)) {
+            $route[] = array_shift($path);
+            $so_far = implode($this->delimiter, $route);
+            if (!isset($this->routes[$so_far])) {
+                return false; //bad route
+            }
+
+            $cls = $this->routes[$so_far];
+            $type = Rframe_Resource::get_rel_type($cls);
+            if (count($path) && $type == Rframe_Resource::ONE_TO_MANY) {
+                array_shift($path); //remove a UUID
+            }
+        }
+        return $route;
     }
 
 
@@ -174,17 +184,17 @@ class Rframe_Parser {
     /**
      * Get children of the given route.
      *
-     * @param string  $routestr
+     * @param string $route
      * @return array $child_routes
      */
-    public function get_children($routestr) {
-        if ($routestr != '' && !isset($this->routes[$routestr])) {
-            throw new Exception("Invalid route '$routestr'");
+    public function get_children($route) {
+        if ($route != '' && !isset($this->routes[$route])) {
+            throw new Exception("Invalid route '$route'");
         }
         $children = array();
         $startswith = '';
-        if ($routestr != '') {
-            $startswith = preg_quote($routestr)."/";
+        if ($route != '') {
+            $startswith = preg_quote($route)."/";
             $startswith = preg_replace('/\//', '\/', $startswith);
         }
 

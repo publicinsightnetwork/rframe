@@ -29,8 +29,13 @@
  */
 abstract class Rframe_Resource {
 
+    // relationship types (describes relationship to parent)
+    const ONE_TO_MANY = 1;
+    const ONE_TO_ONE  = 2;
+    protected static $REL_TYPE = self::ONE_TO_MANY; //default
+
     // API definitions
-    protected $ALLOWED = array(/*create, query, fetch, update, delete*/);
+    protected $ALLOWED     = array(/*create, query, fetch, update, delete*/);
     protected $CREATE_DATA = array();
     protected $QUERY_ARGS  = array();
     protected $UPDATE_DATA = array();
@@ -89,7 +94,7 @@ abstract class Rframe_Resource {
             array_pop($path);
             $parent = $parser->resource($path);
             $uuid = $parser->uuid($path);
-            if (!$parent || !$uuid) {
+            if (!$parent) {
                 $p = implode($parser->delimiter, $path);
                 throw new Exception("Error parsing parent ($p)");
             }
@@ -104,6 +109,20 @@ abstract class Rframe_Resource {
                 $this->parent_err = $e;
             }
         }
+    }
+
+
+    /**
+     * Get the relationship type of this resource.  To accomodate PHP 5.2, you
+     * must pass in the name of the class for this to work.
+     *
+     * @param string $class
+     * @return int
+     */
+    public static function get_rel_type($class) {
+        $vars = get_class_vars($class);
+        $type = $vars['REL_TYPE'];
+        return $type;
     }
 
 
@@ -168,13 +187,24 @@ abstract class Rframe_Resource {
         }
 
         // path invalid for REST
-        if ($uuid && ($method == 'create' || $method == 'query')) {
-            $msg = "Invalid path for $method: '{$this->path}'";
-            throw new Rframe_Exception(Rframe::BAD_PATHMETHOD, $msg);
+        $type = self::get_rel_type(get_class($this));
+        if ($type == self::ONE_TO_MANY) {
+            if ($uuid && ($method == 'create' || $method == 'query')) {
+                $msg = "Invalid path for $method: '{$this->path}'";
+                throw new Rframe_Exception(Rframe::BAD_PATHMETHOD, $msg);
+            }
+            if (!$uuid && $method != 'create' && $method != 'query') {
+                $msg = "Invalid path for $method: '{$this->path}'";
+                throw new Rframe_Exception(Rframe::BAD_PATHMETHOD, $msg);
+            }
         }
-        if (!$uuid && $method != 'create' && $method != 'query') {
-            $msg = "Invalid path for $method: '{$this->path}'";
-            throw new Rframe_Exception(Rframe::BAD_PATHMETHOD, $msg);
+        elseif ($type == self::ONE_TO_ONE) {
+            if ($uuid) {
+                throw new Exception("Why did you pass a UUID?");
+            }
+            if ($method == 'query') {
+                throw new Rframe_Exception(Rframe::BAD_METHOD, 'Query not allowed on resource');
+            }
         }
     }
 
