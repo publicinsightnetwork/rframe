@@ -397,6 +397,12 @@ abstract class Rframe_Resource {
                 'total' => $this->rec_query_total($recs),
             );
 
+            // add non-paging keys to metadata
+            $extra['query'] = array();
+            foreach ($args as $key => $val) {
+                $extra['query'][$key] = $val;
+            }
+
             // apply sorting
             if (isset($pg_args['sort'])) {
                 $extra['sort'] = $pg_args['sort'];

@@ -28,7 +28,7 @@ require_once 'includes.php';
  */
 $api_path = dirname(__FILE__).'/testapi01';
 $api = new Rframe($api_path, 'TestAPI01');
-plan(33);
+plan(35);
 
 // setup the test objects
 $__TEST_OBJECTS = array(
@@ -82,6 +82,8 @@ $rsp = $api->query('purple', array('end' => 'pur'));
 is( $rsp['code'], Rframe::OKAY, 'end1 - code' );
 is( $rsp['success'], true, 'end1 - success' );
 is( count($rsp['radix']), 0, 'end1 - count radix' );
+is( $rsp['meta']['query']['end'], 'pur', 'end1 - meta query' );
+ok( count($rsp['meta']['query']), 1, 'end1 - meta query count' );
 
 $rsp = $api->query('purple', array('end' => '3'));
 is( $rsp['code'], Rframe::OKAY, 'end2 - code' );
