@@ -43,6 +43,7 @@ class Rframe {
     const ONE_DNE        = 8;
     const UNKNOWN_ERROR  = 10;
     const OKAY           = 20;
+    const BGND_CREATE    = 21;
 
     // default messaging for codes
     protected static $DEFAULT_MESSAGES = array(
