@@ -50,6 +50,9 @@ abstract class Rframe_Resource {
     protected $sort_default;
     protected $sort_valids = array();
 
+    // fetching with related child resources
+    protected $fetch_with_key = 'with';
+
     // the record representing the immediate parent of this resource
     protected $parent_rec = null;
 
@@ -433,9 +436,10 @@ abstract class Rframe_Resource {
      * Fetch a resource without changing anything.
      *
      * @param string  $uuid
+     * @param array   $args (optional)
      * @return array $response
      */
-    public function fetch($uuid) {
+    public function fetch($uuid, $args=array()) {
         try {
             $this->check_method('fetch', $uuid);
 
@@ -444,7 +448,7 @@ abstract class Rframe_Resource {
             $this->sanity('rec_fetch', $rec);
 
             // success!
-            return $this->format($rec, 'fetch', $uuid);
+            return $this->format($rec, 'fetch', $uuid, $args);
         }
         catch (Rframe_Exception $e) {
             return $this->format($e, 'fetch', $uuid);
@@ -605,10 +609,60 @@ abstract class Rframe_Resource {
             // single record
             $resp['radix'] = $this->format_radix($mixed);
             $resp['meta'] = $this->format_meta($mixed, $method);
+
+            // process any fetch with related items attached
+            if (array_key_exists($this->fetch_with_key, $extra)) {
+                $with = $extra[$this->fetch_with_key];
+                unset($extra[$this->fetch_with_key]);
+                $resp['meta'][$this->fetch_with_key] = array();
+
+                if ($with == '*') {
+                    $with = $resp['api']['children'];
+                }
+                if (!is_array($with)) {
+                    $with = array($with);
+                }
+                foreach ($with as $key => $val) {
+                    $childname = is_int($key) ? $val : $key;
+                    $childargs = is_int($key) ? array() : $val;
+                    $wdata = $this->format_fetch_with($resp['path'], $childname, $childargs);
+                    if ($wdata) {
+                        $resp['meta'][$this->fetch_with_key][$childname] = $childargs;
+                        $resp['radix'][$childname] = $wdata;
+                    }
+                }
+            }
+
+            // merge remaining extras
             $resp['meta'] = array_merge($resp['meta'], $extra);
         }
 
         return $resp;
+    }
+
+
+    /**
+     * Attach child resources to a 'fetch' query
+     *
+     * @param string $path
+     * @param string $childname
+     * @param array $args
+     * @return array $resp
+     */
+    protected function format_fetch_with($path, $childname, $args=array()) {
+        $childpath = $path . $this->parser->delimiter . $childname;
+
+        // TODO: what happens with invalid with?
+        $rsc = $this->parser->resource($childpath);
+        if (!$rsc) {
+            return false;
+        }
+
+        $child = $rsc->query($args);
+        if ($child['code'] < Rframe::OKAY) {
+            return false;
+        }
+        return $child['radix'];
     }
 
 

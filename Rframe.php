@@ -106,12 +106,14 @@ class Rframe {
 
 
     /**
-     * Public function to fetch a resource.
+     * Public function to fetch a resource.  Optional arguments passed include:
+     *   with => include certain related resources in the returned data
      *
      * @param string  $path
+     * @param array   $args
      * @return array $response
      */
-    public function fetch($path) {
+    public function fetch($path, $args=array()) {
         $rsc = $this->parser->resource($path);
         $found = $rsc;
         if (!$found) {
@@ -121,7 +123,7 @@ class Rframe {
         }
 
         $uuid = $this->parser->uuid($path);
-        return $rsc->fetch($uuid);
+        return $rsc->fetch($uuid, $args);
     }
 
 
