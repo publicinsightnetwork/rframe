@@ -592,7 +592,7 @@ abstract class Rframe_Resource {
         // response-type specific formatting
         if (is_a($mixed, 'Rframe_Exception')) {
             // Error!
-            $resp['success'] = false;
+            $resp['success'] = $mixed->getCode() >= Rframe::OKAY;
             $resp['message'] = $mixed->getMessage();
             $resp['code'] = $mixed->getCode();
         }

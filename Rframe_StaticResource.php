@@ -47,7 +47,7 @@ class Rframe_StaticResource extends Rframe_Resource {
      */
     protected function format($mixed, $method, $uuid=null) {
         return array(
-            'success' => false,
+            'success' => $this->code >= Rframe::OKAY,
             'message' => $this->message,
             'code'    => $this->code,
         );
