@@ -1,4 +1,4 @@
 Rframe
 ================
 
-PHP ORM. Originally build for the Public Insight Network. See the LICENSE file.
+PHP ORM. Originally built for the Public Insight Network. See the LICENSE file.
